@@ -15,7 +15,7 @@ nook search "Lisbon" --checkin 2026-08-01 --checkout 2026-08-05 --guests 2 --jso
 ## The location argument
 
 `location` is a required positional argument — a plain string like `"Lisbon"` or `"Kyoto, Japan"`.
-When you don't supply `--bbox`, `--lat`, or `--lng`, nook sends it straight through as Airbnb's
+When you don't supply `--bbox`, nook sends it straight through as Airbnb's
 free-text search query (`searchByMap=false`). This is the common case and needs no other flags:
 
 ```bash
@@ -96,24 +96,22 @@ room type on any specific listing.
 | Flag | Notes |
 |---|---|
 | `--place-id` | A resolved place id from [`nook place search`](/guides/place-resolution/); more deterministic than a free-text location. |
-| `--lat` / `--lng` | Latitude/longitude (used together). Switches the request into map-search mode — but by themselves they don't constrain the search geographically; use `--bbox` for an actual bounding box. |
 | `--bbox` | `"neLat,neLng,swLat,swLng"` — a real bounding box. Switches to map search and restricts results to it. |
 
 ```bash
 nook search "San Francisco" --bbox "37.81,-122.36,37.70,-122.51" --json
 ```
 
-Any of `--lat`, `--lng`, or `--bbox` flips the request to Airbnb's map-search path
+Supplying `--bbox` flips the request to Airbnb's map-search path
 (`searchByMap=true`); when that happens the free-text `location` string is not sent as a query —
 only the geo constraints are. `--place-id` works independently of that and can be combined with
 plain text search.
 
-### Currency and sort
+### Currency
 
 | Flag | Notes |
 |---|---|
 | `--currency` | ISO currency code, e.g. `USD`, `EUR`. Applies to price filters and to result prices. Defaults to `USD`. |
-| `--sort` | Accepted for contract uniformity but **currently has no effect** — nook does not yet forward it to Airbnb's backend, which uses its own default order. Don't rely on it to change result ordering. |
 
 ### Cursor (pagination)
 

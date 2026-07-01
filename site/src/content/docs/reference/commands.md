@@ -36,8 +36,8 @@ nook search <location> [FILTERS]
 ```
 
 Search Airbnb listings in a location — the marquee discovery command. `<location>` is a bare
-string; it becomes the query unless `--bbox` or `--lat`/`--lng` are given, which switch to a map
-(bounding-box or point) search instead.
+string; it becomes the query unless `--bbox` or `--place-id` is given, which switch to a map
+(bounding-box) or resolved-place search instead.
 
 **Filters:**
 
@@ -52,10 +52,8 @@ string; it becomes the query unless `--bbox` or `--lat`/`--lng` are given, which
 | `--amenities` | comma list | e.g. `--amenities wifi,pool` |
 | `--superhost` | flag | Superhost listings only |
 | `--place-id` | string | A resolved place id, from `nook place search` |
-| `--lat` / `--lng` | float | Point search (used together) |
 | `--bbox` | `"neLat,neLng,swLat,swLng"` | Bounding-box (map) search |
 | `--currency` | ISO code | e.g. `USD` |
-| `--sort` | string | Backend default if omitted |
 | `--cursor` | opaque string | Page forward from a prior `nextCursor` |
 
 Plus [net flags](/reference/flags/) (`--wait`, `--max-wait`) and all global flags.
@@ -72,10 +70,15 @@ nook search "Lisbon" --checkin 2026-08-01 --checkout 2026-08-05 --guests 2 \
   "data": [
     {
       "id": "12345678",
-      "name": "Sunny flat near Alfama",
-      "roomType": "entire_home",
-      "price": { "amount": 145, "currency": "USD" },
-      "rating": 4.92
+      "name": "‹untrusted-airbnb-content› Sunny flat near Alfama ‹/untrusted-airbnb-content›",
+      "roomType": null,
+      "price": { "amount": 145, "currency": "USD", "qualifier": "for 5 nights" },
+      "rating": 4.92,
+      "reviewsCount": 128,
+      "coordinates": { "lat": 38.7107, "lng": -9.1442 },
+      "badges": [],
+      "superhost": false,
+      "url": "https://www.airbnb.com/rooms/12345678"
     }
   ],
   "nextCursor": "eyJvZmZzZXQiOjUwfQ==",
@@ -83,11 +86,15 @@ nook search "Lisbon" --checkin 2026-08-01 --checkout 2026-08-05 --guests 2 \
 }
 ```
 
-For date/price/room-type strategy and cursor mechanics, see
+`roomType` comes back `null` for most search results in practice — Airbnb's search response doesn't
+reliably populate it the way the PDP does; treat it as best-effort. For date/price/room-type
+strategy and cursor mechanics, see
 [Searching](/guides/searching/) and [Pagination](/guides/pagination/). Free-text fields like
 `name` are fenced untrusted in agent mode — see [the etiquette guide](/concepts/etiquette/).
 
-Exit codes of note: `3` (empty results), `7` (rate limited), `8` (retryable upstream error).
+Exit codes of note: `7` (rate limited), `8` (retryable upstream error, including a transient
+GraphQL error). An empty result set does **not** exit `3` today — it's exit `0` with an empty
+`data` array and `meta.count: 0`; see [Exit codes](/reference/exit-codes/#the-full-table).
 
 ---
 
@@ -148,9 +155,9 @@ nook listing get 12345678 --json
   "scope": { "auth": "none", "corpus": "public-logged-out" },
   "data": {
     "id": "12345678",
-    "name": "Sunny flat near Alfama",
+    "name": "‹untrusted-airbnb-content› Sunny flat near Alfama ‹/untrusted-airbnb-content›",
     "description": "‹untrusted-airbnb-content› Charming 1BR steps from the tram... ‹/untrusted-airbnb-content›",
-    "host": { "name": "Ana", "description": "‹untrusted-airbnb-content› ... ‹/untrusted-airbnb-content›" },
+    "host": { "name": "‹untrusted-airbnb-content› Ana ‹/untrusted-airbnb-content›", "description": "‹untrusted-airbnb-content› ... ‹/untrusted-airbnb-content›" },
     "houseRules": "‹untrusted-airbnb-content› No smoking. Quiet after 10pm. ‹/untrusted-airbnb-content›",
     "amenities": ["wifi", "kitchen", "washer"]
   },

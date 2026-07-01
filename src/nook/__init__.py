@@ -1,8 +1,9 @@
 """nook — agent-friendly Airbnb search + availability CLI (read-only; booking excluded).
 
-Scaffolded by cli-scaffold from the Python (Click) reference template. The contract surface
-(output, errors, safety gate, schema, agent, version-check) is correct as-is; client.py is a
-placeholder that cli-implement replaces with the real Airbnb GraphQL client (curl_cffi).
+Reads Airbnb's public, logged-out data over its internal /api/v3 GraphQL (client.py, via
+curl_cffi TLS-match), with cross-process throttle + circuit-breaker and untrusted-text fencing.
+The contract surface (output, errors, safety gate, schema, agent, version-check) lives in cli.py
+/ output.py / errors.py.
 """
 
 from importlib import metadata

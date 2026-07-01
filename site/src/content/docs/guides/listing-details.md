@@ -129,6 +129,12 @@ nook listing get does-not-exist --json
 [Upstream drift](/troubleshooting/upstream-drift/) for what happens when Airbnb's page shape
 changes out from under nook (a different failure than not-found: that's exit `20`).
 
+## Network backpressure
+
+`nook listing get` hits Airbnb like any other network command, so it accepts `--wait` (block
+until the circuit breaker clears instead of failing fast) and `--max-wait SECONDS` (default
+`900`). See [Rate limited](/troubleshooting/rate-limited/).
+
 ## Combine with other commands
 
 ```bash

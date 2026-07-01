@@ -49,8 +49,11 @@ client-side. Concretely:
   if omitted, `--end` defaults to `today + months` if omitted. Days outside `[start, end]` are
   dropped before the envelope is built.
 - `--months` still controls how many calendar months are fetched from Airbnb under the hood (it's
-  clamped to 1–12), so if you pass a `--start`/`--end` range that reaches further out than 1 month,
-  raise `--months` too or you'll get a truncated calendar back.
+  clamped to 1–12, and the fetch always starts from the current month). If you pass a
+  `--start`/`--end` range that reaches further out than what `--months` fetched, the days beyond
+  that window simply aren't in the result — you'll get back fewer days than expected (possibly an
+  empty list), not a `meta.truncated: true` marker. Raise `--months` to cover the range you asked
+  for.
 
 ```bash
 # Same effect, two ways: next ~2 months, filtered to just the last two weeks of that window

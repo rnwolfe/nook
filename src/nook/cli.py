@@ -181,11 +181,8 @@ def cli(ctx, **_):
 @click.option("--amenities", help="Comma-separated amenities filter.")
 @click.option("--superhost", is_flag=True, default=None, help="Only Superhost listings.")
 @click.option("--place-id", help="Resolved place id (from `nook place search`).")
-@click.option("--lat", type=float, help="Latitude (with --lng) for point search.")
-@click.option("--lng", type=float, help="Longitude (with --lat) for point search.")
-@click.option("--bbox", help="Bounding box 'neLat,neLng,swLat,swLng'.")
+@click.option("--bbox", help="Bounding box 'neLat,neLng,swLat,swLng' for map-area search.")
 @click.option("--currency", help="ISO currency for prices (e.g. USD).")
-@click.option("--sort", help="Sort order (backend default if omitted).")
 @click.option("--cursor", help="Opaque pagination cursor from a prior nextCursor.")
 @net_options
 @global_options

@@ -84,7 +84,7 @@ nook availability 12345678 --months 2 --wait --max-wait 120 --json
 ### `nook search <location>`
 
 The location argument is a bare string (e.g. `"Lisbon"`) and becomes the search query. Passing
-`--bbox` or both `--lat`/`--lng` switches the backend to a map search instead of a text query.
+`--bbox` switches the backend to a map search instead of a text query.
 
 | Flag | Type | Notes |
 |---|---|---|
@@ -104,11 +104,8 @@ The location argument is a bare string (e.g. `"Lisbon"`) and becomes the search 
 | `--amenities <a,b>` | string | Comma-separated amenities filter. |
 | `--superhost` | flag | Only Superhost listings. |
 | `--place-id <id>` | string | A resolved place id from `nook place search`, for deterministic (non-fuzzy) location targeting. |
-| `--lat <float>` | float | Latitude, paired with `--lng`, for point/map search. |
-| `--lng <float>` | float | Longitude, paired with `--lat`. |
 | `--bbox <neLat,neLng,swLat,swLng>` | string | Bounding box — switches to map search. See [Bounding output](/guides/bounding-output/) (note: this is a geographic bbox, distinct from output bounding). |
 | `--currency <ISO>` | string | e.g. `USD`. Also controls the `meta.currency` on the envelope. |
-| `--sort <value>` | string | Sort order; backend default if omitted. |
 | `--cursor <token>` | string | Opaque pagination cursor from a prior response's `nextCursor`. See [Pagination](/guides/pagination/). |
 
 Plus [global flags](#global-flags) and [network flags](#network-command-flags).

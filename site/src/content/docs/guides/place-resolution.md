@@ -76,14 +76,20 @@ free-text location on every run.
 
 `coordinates` and `bbox` are declared in the shape but always come back `null` — Airbnb's
 autocomplete only hands back a place ID and a name, not geometry. If you need a bounding
-box or a lat/lng pair for a map search, you'll need to supply your own (`--bbox` or
-`--lat`/`--lng` on `nook search`) rather than expecting `place search` to produce one.
+box for a map search, you'll need to supply your own (`--bbox` on `nook search`) rather
+than expecting `place search` to produce one.
 
 ## No results
 
 An ambiguous or nonsense query can legitimately resolve to an empty list — the command
 still exits `0`, with `data: []` and `meta.count: 0`. Check `meta.count` (or just the
 length of `data`) rather than relying on a distinct exit code for "no matches."
+
+## Network backpressure
+
+`nook place search` hits Airbnb like any other network command, so it accepts `--wait` (block
+until the circuit breaker clears instead of failing fast) and `--max-wait SECONDS` (default
+`900`). See [Rate limited](/troubleshooting/rate-limited/).
 
 ## Related
 

@@ -113,14 +113,13 @@ nook reviews 87654321 --json
 }
 ```
 
-Unlike [`nook listing get`](/guides/listing-details/) and [`nook availability`](/guides/availability/),
-`reviews` doesn't do its own existence check against the listing id — there's no explicit
-`NOT_FOUND` (exit `5`) path for a bad or removed id here. In practice: if Airbnb's response is
-missing the reviews section entirely (the shape a genuinely unknown/removed listing tends to
-produce), `nook` can't tell "no such listing" apart from "Airbnb changed the response shape" and
-raises `UPSTREAM_DRIFT` (exit `20`) instead — see [Upstream drift](/troubleshooting/upstream-drift/).
-If you need a hard existence check before pulling reviews, run [`nook listing get <id>`](/guides/listing-details/)
-first; it does raise `NOT_FOUND` for a bad id.
+Like [`nook listing get`](/guides/listing-details/) and [`nook availability`](/guides/availability/),
+`reviews` distinguishes a bad id from a real listing with no reviews. If Airbnb returns no
+product-detail node at all for the id — the shape a genuinely invalid, private, or removed listing
+produces — `nook` raises `NOT_FOUND` (exit `5`), so an agent should retry with a valid id. A *real*
+listing that simply hasn't been reviewed yet returns exit `0` with an empty `data` array (above).
+`UPSTREAM_DRIFT` (exit `20`) is reserved for a genuine change in Airbnb's response shape — not a bad
+id — see [Upstream drift](/troubleshooting/upstream-drift/).
 
 ## Full command
 

@@ -106,7 +106,10 @@ def _fake_transport(search=None):
             vs = (params or {}).get("variables", "")
             return _calendar_payload() if _ID in vs else {"data": {"merlin": {}}}
         if "StaysPdpReviewsQuery" in url:
-            return _reviews_payload()
+            vs = (params or {}).get("variables", "")
+            if _B64 in vs:
+                return _reviews_payload()
+            return {"data": {"presentation": {"stayProductDetailPage": None}}}  # bad/removed id
         if "user_markets" in url:
             return {"user_markets": [{"satori_parameters": "tok", "country_code": "US"}]}
         if "autocompletes" in url:
@@ -192,6 +195,15 @@ def test_no_wrap_disables_fencing(net, capsys):
 def test_reviews_text_fenced(net, capsys):
     out = json.loads(run_capture(["reviews", _ID, "--json"], capsys))
     assert "untrusted-airbnb-content" in out["data"][0]["text"]
+
+
+def test_reviews_bad_id_is_not_found_not_drift(net, capsys):
+    # A bad/removed listing id must report NOT_FOUND (5), not UPSTREAM_DRIFT (20) — an agent
+    # should retry with a valid id, not conclude the tool needs updating.
+    code = run(["reviews", "does-not-exist", "--json"])
+    cap = capsys.readouterr()
+    assert code == ExitCode.NOT_FOUND
+    assert "NOT_FOUND" in cap.err
 
 
 def run_capture(argv, capsys):

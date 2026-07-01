@@ -22,7 +22,7 @@ from datetime import date, datetime
 from typing import Any
 
 from . import keyhash, transport
-from .errors import AppError, ExitCode, upstream_drift
+from .errors import AppError, ExitCode, not_found, upstream_drift
 
 _BASE = "https://www.airbnb.com/api/v3"
 _ROOM_ID_RE = re.compile(r"(\d+)\s*$")
@@ -304,9 +304,12 @@ class Client:
         payload = self._get(url, params)
         raw = _dig(payload, "data", "presentation", "stayProductDetailPage", "reviews", "reviews")
         if raw is None:
+            # No PDP node at all → the listing id is invalid or removed (a bad id, NOT a shape
+            # change). Report not_found (exit 5), consistent with `listing get` / `availability`,
+            # rather than UPSTREAM_DRIFT — an agent should retry with a valid id, not update nook.
             if _dig(payload, "data", "presentation", "stayProductDetailPage") is None:
-                raise upstream_drift("reviews response shape changed")
-            return ([], None)
+                raise not_found("listing", listing_id)
+            return ([], None)  # a real listing that simply has no reviews yet
         items = [{
             "id": rv.get("id"),
             "date": rv.get("createdAt") or rv.get("localizedDate"),
@@ -396,18 +399,18 @@ def _build_raw_params(location: str, f: dict[str, Any]) -> list[dict]:
     ]
     if f.get("place_id"):
         params.append(_rp("placeId", f["place_id"]))
-    if any(f.get(k) is not None for k in ("lat", "lng", "bbox")):
-        params.append(_rp("searchByMap", "true"))
-        if f.get("bbox"):
-            try:
-                ne_lat, ne_lng, sw_lat, sw_lng = [x.strip() for x in str(f["bbox"]).split(",")]
-                params += [_rp("neLat", ne_lat), _rp("neLng", ne_lng),
-                           _rp("swLat", sw_lat), _rp("swLng", sw_lng)]
-            except ValueError:
-                pass
-    else:
-        params.append(_rp("searchByMap", "false"))
-        params.append(_rp("query", location))
+    bbox_ok = False
+    if f.get("bbox"):
+        try:
+            ne_lat, ne_lng, sw_lat, sw_lng = [x.strip() for x in str(f["bbox"]).split(",")]
+            params += [_rp("searchByMap", "true"), _rp("neLat", ne_lat), _rp("neLng", ne_lng),
+                       _rp("swLat", sw_lat), _rp("swLng", sw_lng)]
+            bbox_ok = True
+        except ValueError:
+            bbox_ok = False
+    if not bbox_ok:
+        # Text search: Airbnb resolves the location string server-side (no bbox required).
+        params += [_rp("searchByMap", "false"), _rp("query", location)]
     if f.get("checkin") and f.get("checkout"):
         nights = _nights(f["checkin"], f["checkout"])
         params += [_rp("checkin", f["checkin"]), _rp("checkout", f["checkout"])]
