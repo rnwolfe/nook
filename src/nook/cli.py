@@ -14,7 +14,6 @@ of scope by design."""
 
 from __future__ import annotations
 
-import difflib
 import json
 import sys
 from dataclasses import dataclass
@@ -131,21 +130,7 @@ def make_runtime(ctx) -> Runtime:
     return _active
 
 
-class DYMGroup(click.Group):
-    """Adds "did you mean" suggestions for unknown subcommands."""
-
-    def resolve_command(self, ctx, args):
-        try:
-            return super().resolve_command(ctx, args)
-        except click.UsageError as exc:
-            name = args[0] if args else ""
-            matches = difflib.get_close_matches(name, self.list_commands(ctx), n=1)
-            if matches:
-                exc.message = f"{exc.message}\n  did you mean '{matches[0]}'?"
-            raise
-
-
-@click.group(cls=DYMGroup, context_settings={"help_option_names": ["-h", "--help"]})
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @global_options
 @click.pass_context
 def cli(ctx, **_):

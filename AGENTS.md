@@ -34,9 +34,11 @@ uv run nook search "Lisbon" --json
 ## Freshness directive (commit-coupled)
 When you change the command surface, flags, output schema, exit codes, or the safety/etiquette
 posture, in the SAME change update: the embedded **`src/nook/SKILL.md`**, **`README.md`**, the
-**docs site** (pages + `llms.txt`), the **landing page** copy, and the **OG/social cards** if the
-positioning changed. `schema --json` is generated from the parser and cannot drift; the prose
-artifacts can — keep them in lockstep. Bump the conformance version only via `spec-rollout`.
+**docs site** (pages + `llms.txt`), the **landing page** copy, the **OG/social cards** if the
+positioning changed, and **re-render the VHS demo** (`uv tool install . --reinstall && vhs
+demo/nook.tape` → `demo/nook.gif`; the tape is offline/deterministic — no live Airbnb calls).
+`schema --json` is generated from the parser and cannot drift; the prose artifacts + the demo can
+— keep them in lockstep. Bump the conformance version only via `spec-rollout`.
 
 ## Web presence (`site/` — Astro + Starlight)
 

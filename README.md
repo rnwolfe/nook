@@ -15,6 +15,10 @@ only public, logged-out data.
 
 > Conforms to the [Agent CLI Guidelines](https://aclig.dev) at **v0.4.0** · read-only · MIT.
 
+<p align="center">
+  <img src="demo/nook.gif" alt="nook demo — the command surface, the availability-calendar wedge, machine-readable schema (read-only + conformance + exit codes), and self-correcting errors" width="820">
+</p>
+
 ## Quickstart
 ```bash
 uvx nook search "Lisbon" --checkin 2026-08-01 --checkout 2026-08-05 --guests 2 --json

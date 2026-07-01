@@ -276,8 +276,9 @@ def test_read_only_gate_machinery():
 
 def test_did_you_mean(capsys):
     run(["serch", "Lisbon"])
-    err = capsys.readouterr().err
+    err = capsys.readouterr().err.lower()
     assert "did you mean" in err and "search" in err
+    assert err.count("did you mean") == 1  # Click 8.4 native suggestion — not doubled
 
 
 def test_agent_prints_skill(capsys):
