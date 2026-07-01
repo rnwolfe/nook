@@ -24,6 +24,7 @@ import click
 from . import SCOPE, SPEC, __version__
 from .client import Client
 from .errors import AppError, ExitCode, exit_table, mutation_blocked, not_found
+from .fence import fence_fields
 from .output import Writer
 from .skill import content as skill_content
 
@@ -31,7 +32,7 @@ from .skill import content as skill_content
 _active: "Runtime | None" = None
 
 _GLOBAL_KEYS = ["fmt", "as_json", "no_color", "allow_mutations", "dry_run", "yes", "force",
-                "no_input", "limit", "select", "concise", "detailed"]
+                "no_input", "limit", "select", "concise", "detailed", "no_wrap"]
 
 
 def global_options(f):
@@ -58,6 +59,21 @@ def global_options(f):
         click.option("--select", default=None, help="Comma-separated dot-path field projection."),
         click.option("--concise", is_flag=True, default=None, help="Terser output (default)."),
         click.option("--detailed", is_flag=True, default=None, help="Richer output."),
+        click.option("--no-wrap", is_flag=True, default=None,
+                     help="Do not fence untrusted Airbnb text (fencing is default-ON in agent mode)."),
+    ]
+    for o in reversed(opts):
+        f = o(f)
+    return f
+
+
+def net_options(f):
+    """Extra flags for commands that hit Airbnb: backpressure control (contract §12)."""
+    opts = [
+        click.option("--wait", is_flag=True, default=False,
+                     help="If the circuit-breaker is open, block until it clears (default: fail fast)."),
+        click.option("--max-wait", "max_wait", type=float, default=900.0, show_default=True,
+                     help="Cap for --wait, in seconds."),
     ]
     for o in reversed(opts):
         f = o(f)
@@ -74,6 +90,7 @@ class Runtime:
     no_input: bool
     out: Writer
     client: Client
+    wrap: bool = True
 
     def guard(self, op: str) -> None:
         """Mutation gate — kept for contract uniformity. nook wires no mutations, so this is
@@ -104,7 +121,7 @@ def make_runtime(ctx) -> Runtime:
     out = Writer(fmt=fmt, color=color, limit=limit, select=sel)
     _active = Runtime(fmt=fmt, allow_mutations=bool(v["allow_mutations"]), dry_run=bool(v["dry_run"]),
                       yes=bool(v["yes"]), force=bool(v["force"]), no_input=bool(v["no_input"]),
-                      out=out, client=Client())
+                      out=out, client=Client(), wrap=not bool(v["no_wrap"]))
     return _active
 
 
@@ -164,15 +181,19 @@ def cli(ctx, **_):
 @click.option("--currency", help="ISO currency for prices (e.g. USD).")
 @click.option("--sort", help="Sort order (backend default if omitted).")
 @click.option("--cursor", help="Opaque pagination cursor from a prior nextCursor.")
+@net_options
 @global_options
 @click.pass_context
-def search(ctx, location, cursor, **filters):
+def search(ctx, location, cursor, wait, max_wait, **filters):
     """Search Airbnb listings in a location (discovery)."""
     rt = make_runtime(ctx)
     provided = {k: v for k, v in filters.items() if v is not None and k not in _GLOBAL_KEYS}
-    listings, next_cursor = rt.client.search(location, filters=provided, cursor=cursor)
+    provided["_page_size"] = rt.out.limit
+    client = Client(currency=provided.get("currency"), wait=wait, max_wait_s=max_wait)
+    listings, next_cursor = client.search(location, filters=provided, cursor=cursor)
+    fence_fields(listings, ["name"], rt.wrap)
     rt.out.emit_read(listings, SCOPE, next_cursor=next_cursor,
-                     meta_extra={"currency": provided.get("currency")})
+                     meta_extra={"currency": provided.get("currency") or "USD"})
 
 
 # --- place (noun-verb) ------------------------------------------------------
@@ -184,12 +205,14 @@ def place():
 
 @place.command("search")
 @click.argument("query")
+@net_options
 @global_options
 @click.pass_context
-def place_search(ctx, query, **_):
+def place_search(ctx, query, wait, max_wait, **_):
     """Resolve a location string to place candidates (autocomplete), for deterministic search."""
     rt = make_runtime(ctx)
-    rt.out.emit_read(rt.client.place_search(query), SCOPE)
+    client = Client(wait=wait, max_wait_s=max_wait)
+    rt.out.emit_read(client.place_search(query), SCOPE)
 
 
 # --- listing (noun-verb) ----------------------------------------------------
@@ -201,14 +224,17 @@ def listing():
 
 @listing.command("get")
 @click.argument("listing_id")
+@net_options
 @global_options
 @click.pass_context
-def listing_get(ctx, listing_id, **_):
+def listing_get(ctx, listing_id, wait, max_wait, **_):
     """Get full details for one listing by id."""
     rt = make_runtime(ctx)
-    data = rt.client.listing(listing_id)
+    client = Client(wait=wait, max_wait_s=max_wait)
+    data = client.listing(listing_id)
     if data is None:
         raise not_found("listing", listing_id)
+    fence_fields(data, ["name", "description", "houseRules", "host.name", "host.description"], rt.wrap)
     rt.out.emit_read(data, SCOPE)
 
 
@@ -221,15 +247,17 @@ def listing_get(ctx, listing_id, **_):
 @click.option("--start", help="Start date (YYYY-MM-DD); overrides --months window start.")
 @click.option("--end", help="End date (YYYY-MM-DD); overrides --months window end.")
 @click.option("--currency", help="ISO currency for prices (e.g. USD).")
+@net_options
 @global_options
 @click.pass_context
-def availability(ctx, listing_id, months, start, end, currency, **_):
+def availability(ctx, listing_id, months, start, end, currency, wait, max_wait, **_):
     """Forward per-day availability calendar for a listing (available / min-nights / price)."""
     rt = make_runtime(ctx)
-    days = rt.client.availability(listing_id, months=months, start=start, end=end)
+    client = Client(currency=currency, wait=wait, max_wait_s=max_wait)
+    days = client.availability(listing_id, months=months, start=start, end=end)
     if days is None:
         raise not_found("listing", listing_id)
-    rt.out.emit_read(days, SCOPE, meta_extra={"currency": currency})
+    rt.out.emit_read(days, SCOPE, meta_extra={"currency": currency or "USD"})
 
 
 # --- reviews ----------------------------------------------------------------
@@ -237,12 +265,15 @@ def availability(ctx, listing_id, months, start, end, currency, **_):
 @cli.command("reviews")
 @click.argument("listing_id")
 @click.option("--cursor", help="Opaque pagination cursor from a prior nextCursor.")
+@net_options
 @global_options
 @click.pass_context
-def reviews(ctx, listing_id, cursor, **_):
+def reviews(ctx, listing_id, cursor, wait, max_wait, **_):
     """Recent reviews for a listing (free text is fenced untrusted in agent mode)."""
     rt = make_runtime(ctx)
-    items, next_cursor = rt.client.reviews(listing_id, cursor=cursor)
+    client = Client(wait=wait, max_wait_s=max_wait)
+    items, next_cursor = client.reviews(listing_id, cursor=cursor)
+    fence_fields(items, ["text"], rt.wrap)
     rt.out.emit_read(items, SCOPE, next_cursor=next_cursor)
 
 
