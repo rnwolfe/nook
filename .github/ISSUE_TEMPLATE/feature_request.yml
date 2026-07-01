@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a capability or improvement for nook.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `nook` is **read-only by design** (it searches and checks availability; it does **not**
+        book — booking is out of scope) and **agent-first** (stable JSON, structured errors,
+        bounded output, polite backend etiquette). Requests that respect those constraints are most
+        likely to land.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / use case
+      description: What are you trying to do, and what's blocking you today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Command surface, flags, and the output fields you'd expect.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which command / area?
+      multiple: true
+      options: ["search", "availability", "place search", "listing get", "reviews", "doctor / schema / agent", "new command"]
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

@@ -224,11 +224,12 @@ stripped only under an explicit `--no-wrap` on the human path.
   - **Web presence**: bold custom landing page + Starlight docs sharing **ONE design-token source**;
     per-page **OG/social cards**; a 1280×640 social preview.
   - **Deploy target**: **Vercel** (custom domain, git-connected auto-deploy), CI.
-  - **Custom domain (candidate)**: **`nook.sh`** (fallbacks `trynook.sh`, `nookcli.sh`) — publish
-    confirms availability via the Vercel domain tool; operator buys. If `nook` collides, fall back to
-    `perch`/`roost` and re-derive the domain. Until bought+bound: `domain: null` + `planned_domain`.
-  - **Canonical docs URL**: `https://docs.nook.sh` (serves `/llms.txt`); `nook.sh` is the landing.
-    Both asserted only once wired.
+  - **Custom domain (candidate)**: **`nookcli.sh`** ($22/yr, available; `nook.sh` and `nook.dev` are
+    both taken). Fleet-consistent with `uficli.sh`/`knitcli.sh`. Cheaper alt: `nookcli.dev` ($9.99).
+    Operator buys (human-only); it auto-binds on Vercel NS. Until bought+bound: `domain: null` +
+    `planned_domain: nookcli.sh` in fleet.yaml — never asserted live.
+  - **Canonical docs URL**: `https://docs.nookcli.sh` (serves `/llms.txt`); `nookcli.sh` is the
+    landing. Both asserted only once wired.
 - **Gated (do NOT add until flag true)**: `.github/FUNDING.yml` / Sponsor — only if
   `discoverability.yaml → funding.sponsors_live: true`.
 

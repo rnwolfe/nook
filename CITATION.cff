@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use nook, please cite it using these metadata."
+title: "nook: an agent-first, read-only Airbnb search + availability CLI"
+abstract: >-
+  nook is a read-only, JSON-first command-line tool for searching public, logged-out Airbnb
+  listings and dumping a forward per-day availability calendar, engineered to be driven by LLM
+  agents: stable versioned output schema, machine-readable self-description, semantic exit codes,
+  token-bounded output, prompt-injection fencing of untrusted text, and a persistent, cross-process
+  politeness throttle with a circuit breaker. Booking is deliberately out of scope.
+type: software
+authors:
+  - family-names: Wolfe
+    given-names: Ryan
+license: MIT
+repository-code: "https://github.com/rnwolfe/nook"
+url: "https://github.com/rnwolfe/nook"
+keywords:
+  - airbnb
+  - cli
+  - agent
+  - llm
+  - availability
+  - search
+  - travel

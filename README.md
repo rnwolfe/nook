@@ -2,6 +2,12 @@
 
 **Agent-friendly Airbnb search + availability — read-only, JSON-first. Booking excluded by design.**
 
+[![CI](https://github.com/rnwolfe/nook/actions/workflows/ci.yml/badge.svg)](https://github.com/rnwolfe/nook/actions/workflows/ci.yml)
+[![Release](https://github.com/rnwolfe/nook/actions/workflows/release.yml/badge.svg)](https://github.com/rnwolfe/nook/actions/workflows/release.yml)
+[![PyPI](https://img.shields.io/pypi/v/nook)](https://pypi.org/project/nook/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Agent CLI Guidelines: Full](https://aclig.dev/badge/agent-cli-guidelines-full.svg)](https://aclig.dev/conformance/)
+
 `nook` gives an AI agent (or you) clean, bounded JSON for Airbnb **listing search/discovery**,
 **listing details**, and a **forward availability calendar** (per-day available / min-nights /
 price) — the piece other tools don't give you for free. It never books, never logs in, and reads

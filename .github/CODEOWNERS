@@ -1,0 +1,8 @@
+# Default owner for everything in this repo.
+* @rnwolfe
+
+# The agent-CLI contract surface — review with extra care.
+/src/nook/output.py   @rnwolfe
+/src/nook/errors.py   @rnwolfe
+/src/nook/client.py   @rnwolfe
+/tests/test_cli.py    @rnwolfe

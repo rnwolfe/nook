@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          # uv.lock is gitignored (library-style CLI), so key the cache on pyproject.toml.
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: Sync
+        run: uv sync --extra dev
+
+      - name: Test (contract gate)
+        run: uv run pytest -q
+
+      - name: Schema smoke
+        run: uv run nook schema --json > /dev/null
+
+  # Lint is advisory: it reports style but never fails the build.
+  lint:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          cache-dependency-glob: "**/pyproject.toml"
+      - name: Ruff (lenient)
+        run: uvx ruff check . || true

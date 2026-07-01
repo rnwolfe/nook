@@ -1,0 +1,54 @@
+name: Bug report
+description: Something in nook behaves incorrectly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! For **security** issues do NOT use this form — see SECURITY.md.
+        `nook` stores no secrets, but please still redact anything personal from pasted output.
+  - type: input
+    id: version
+    attributes:
+      label: nook version
+      description: Output of `nook version`.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS / Python
+      placeholder: "Ubuntu 24.04 / Python 3.12 (uv)"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      description: The exact command you ran.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected vs. what happened
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: JSON output / structured error
+      description: Paste the `--json` output (or the JSON error from stderr) and the exit code (`echo $?`).
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: nook doctor output
+      description: Output of `nook doctor --json` (helps diagnose blocks, drift, and cache state).
+      render: json
+    validations:
+      required: false
