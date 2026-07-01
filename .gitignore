@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# uv / venv
+.venv/
+venv/
+# Library-style CLI (published to PyPI): the lock is not committed; CI pins on pyproject.toml.
+uv.lock
+
+# Docs / web (added by cli-publish)
+node_modules/
+.astro/
+.vercel/
+.vercel/project.json
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/

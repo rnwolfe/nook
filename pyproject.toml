@@ -1,0 +1,35 @@
+[project]
+name = "nook"
+version = "0.0.1"
+description = "Agent-friendly Airbnb search + availability CLI — read-only, JSON-first, booking excluded."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Ryan Wolfe" }]
+keywords = ["airbnb", "travel", "search", "availability", "agent", "cli", "read-only"]
+dependencies = [
+    "click>=8.4",
+    # TLS/JA3 must match a real browser or Airbnb 403s at the transport layer — a deliberate
+    # deviation from the blueprint's httpx default (see spec.md §Language). cli-implement uses this.
+    "curl_cffi>=0.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.urls]
+Homepage = "https://github.com/rnwolfe/nook"
+Repository = "https://github.com/rnwolfe/nook"
+
+[project.scripts]
+nook = "nook.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nook"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/nook/SKILL.md" = "nook/SKILL.md"
