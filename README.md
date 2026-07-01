@@ -16,7 +16,7 @@ only public, logged-out data.
 > Conforms to the [Agent CLI Guidelines](https://aclig.dev) at **v0.4.0** · read-only · MIT.
 
 <p align="center">
-  <img src="demo/nook.gif" alt="nook demo — the command surface, the availability-calendar wedge, machine-readable schema (read-only + conformance + exit codes), and self-correcting errors" width="820">
+  <img src="demo/nook.gif" alt="nook demo — real Airbnb search in Lisbon, the forward availability-calendar wedge (open nights + min-nights), listing details, and its read-only / no-auth conformance" width="900">
 </p>
 
 ## Quickstart
