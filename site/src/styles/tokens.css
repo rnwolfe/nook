@@ -1,0 +1,50 @@
+/*
+ * nook design tokens — the SINGLE source of truth for the landing page AND the Starlight
+ * docs (imported by both via astro.config customCss). Concept: "the vacancy board" — a warm
+ * cozy-cabin-meets-departure-board aesthetic. Deep espresso canvas, warm cream text, a
+ * terracotta/amber primary with a warm-coral secondary (deliberately NOT literal Airbnb
+ * pink/red — no implied affiliation). Never hand-copy these values elsewhere.
+ *
+ * The custom-property prefix is --nk-*; index.astro and docs.css both resolve against it.
+ */
+:root {
+  /* palette — deep espresso/charcoal canvas with warm cream text */
+  --nk-espresso-900: #17110d; /* canvas — deep espresso */
+  --nk-espresso-850: #1e1610; /* sidebar / deep panel */
+  --nk-espresso-800: #251b14; /* panel */
+  --nk-espresso-700: #30241b; /* raised panel */
+  --nk-espresso-600: #3d2f23; /* hover / chip */
+  --nk-line: #46362a; /* hairline / borders */
+  --nk-fog: #b39d86; /* muted label text — warm taupe */
+  --nk-mist: #e4d7c5; /* body text — soft cream */
+  --nk-cream: #f7efe2; /* headings — warm cream */
+
+  /* accents — terracotta primary, warm-coral secondary, amber for "available" */
+  --nk-terracotta: #e07a5f; /* primary accent */
+  --nk-coral: #ef9d7f; /* secondary warm-coral */
+  --nk-amber: #eeb15a; /* amber — the "available / open" glow */
+  --nk-honey: #f2cf95; /* light amber highlight */
+  --nk-sage: #9fb089; /* muted warm green — "open" confirmation */
+  --nk-rose: #d96a6a; /* danger / "the hard way" */
+
+  --nk-grad: linear-gradient(100deg, var(--nk-terracotta), var(--nk-amber) 72%);
+  --nk-grad-warm: linear-gradient(120deg, var(--nk-coral), var(--nk-terracotta) 50%, var(--nk-amber));
+
+  /* vacancy-board cell states — the wedge, made literal */
+  --nk-open: #eeb15a; /* available night */
+  --nk-open-soft: rgba(238, 177, 90, 0.16);
+  --nk-min: #e07a5f; /* available but min-nights gated */
+  --nk-min-soft: rgba(224, 122, 95, 0.15);
+  --nk-shut: #2b2018; /* unavailable night */
+
+  /* type — a characterful warm serif for display; humanist sans body; a clean mono */
+  --nk-font-display: "Fraunces", "Iowan Old Style", "Palatino", "Georgia", serif;
+  --nk-font-body: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --nk-font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+
+  /* spacing / radius / motion — cozy, rounded corners */
+  --nk-radius: 10px;
+  --nk-radius-lg: 18px;
+  --nk-maxw: 1140px;
+  --nk-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}

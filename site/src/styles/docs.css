@@ -1,0 +1,60 @@
+/* Starlight theme overrides — maps Starlight's tokens onto the shared nook "vacancy board"
+ * palette so the docs and the landing read as one product. Warm espresso dark by default;
+ * a clean warm light mode (cream paper, terracotta accents). */
+:root {
+  --sl-font: var(--nk-font-body);
+  --sl-font-mono: var(--nk-font-mono);
+}
+:root[data-theme="dark"] {
+  --sl-color-accent-low: #3a1f16;
+  --sl-color-accent: var(--nk-terracotta);
+  --sl-color-accent-high: #f6d3c3;
+  --sl-color-white: var(--nk-cream);
+  --sl-color-gray-1: var(--nk-mist);
+  --sl-color-gray-2: var(--nk-fog);
+  --sl-color-gray-3: #8a785f;
+  --sl-color-gray-4: var(--nk-line);
+  --sl-color-gray-5: var(--nk-espresso-700);
+  --sl-color-gray-6: var(--nk-espresso-800);
+  --sl-color-black: var(--nk-espresso-900);
+  --sl-color-bg: var(--nk-espresso-900);
+  --sl-color-bg-nav: color-mix(in srgb, var(--nk-espresso-850) 88%, transparent);
+  --sl-color-bg-sidebar: var(--nk-espresso-850);
+  --sl-color-hairline-shade: var(--nk-line);
+  --sl-color-text-accent: var(--nk-amber);
+}
+:root[data-theme="light"] {
+  /* warm light mode — cream paper, terracotta ink accents */
+  --sl-color-accent-low: #f6e2d6;
+  --sl-color-accent: #c0563a;
+  --sl-color-accent-high: #5a2416;
+  --sl-color-white: #2a1d13;
+  --sl-color-gray-1: #3c2c1f;
+  --sl-color-gray-2: #5c4835;
+  --sl-color-gray-3: #7d6549;
+  --sl-color-gray-6: #f3ead9;
+  --sl-color-gray-7: #f8f1e4;
+  --sl-color-black: #fbf6ec;
+  --sl-color-bg: #fbf6ec;
+  --sl-color-bg-nav: color-mix(in srgb, #f6ecdb 90%, transparent);
+  --sl-color-bg-sidebar: #f6ecdb;
+  --sl-color-text-accent: #c0563a;
+}
+
+/* Branded site title + headings — the characterful warm serif */
+.site-title {
+  font-family: var(--nk-font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-optical-sizing: auto;
+}
+[data-theme="dark"] .site-title { color: var(--nk-cream); }
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3 {
+  font-family: var(--nk-font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-optical-sizing: auto;
+}
+[data-theme="dark"] .sl-markdown-content a { color: var(--nk-amber); }

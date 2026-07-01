@@ -1,0 +1,39 @@
+---
+// Per-page OG/social card: extends Starlight's default Head and points og:image at the
+// generated card for this page (falling back to the default card). Cards are built by
+// scripts/gen-og.mjs — keep the `known` list in sync with the slugs there. Nested slugs
+// (e.g. guides/searching) are flattened to a single filename (guides-searching.png).
+import Default from "@astrojs/starlight/components/Head.astro";
+
+const SITE = "https://nookcli.sh";
+const known = [
+  "introduction",
+  "getting-started-install",
+  "getting-started-quickstart",
+  "getting-started-no-auth",
+  "guides-searching",
+  "guides-availability",
+  "guides-listing-details",
+  "guides-place-resolution",
+  "guides-reviews",
+  "guides-bounding-output",
+  "guides-pagination",
+  "concepts-output-envelope",
+  "concepts-read-only",
+  "concepts-legitimacy",
+  "concepts-etiquette",
+  "reference-commands",
+  "reference-flags",
+  "reference-exit-codes",
+  "reference-schema-agent",
+  "reference-version-check",
+  "troubleshooting-rate-limited",
+  "troubleshooting-upstream-drift",
+];
+const id = (Astro.props.entry?.id ?? "").replace(/\.(md|mdx)$/, "").replace(/\//g, "-");
+const og = `${SITE}/og/${known.includes(id) ? id : "default"}.png`;
+---
+
+<Default {...Astro.props}><slot /></Default>
+<meta property="og:image" content={og} />
+<meta name="twitter:image" content={og} />

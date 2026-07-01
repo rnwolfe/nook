@@ -1,0 +1,609 @@
+---
+import "../styles/tokens.css";
+const repo = "https://github.com/rnwolfe/nook";
+const site = "https://nookcli.sh";
+
+// ── The vacancy board ────────────────────────────────────────────────────────
+// A forward availability calendar rendered as a warm departure-board grid. This is
+// the wedge, made literal. States: "shut" (booked), "open" (available night, price),
+// "min" (available but minimum-nights gated). Fully readable without JS; the split-flap
+// fill-in is a progressive enhancement (see the inline script + prefers-reduced-motion).
+const LEAD = 3; // blank leading cells so day 1 lands mid-week
+const cells = [
+  { d: 1, s: "shut" }, { d: 2, s: "shut" }, { d: 3, s: "shut" }, { d: 4, s: "shut" },
+  { d: 5, s: "shut" }, { d: 6, s: "min", n: "2n" }, { d: 7, s: "open", p: "128" },
+  { d: 8, s: "open", p: "122" }, { d: 9, s: "open", p: "118" }, { d: 10, s: "open", p: "118" },
+  { d: 11, s: "min", n: "3n" }, { d: 12, s: "open", p: "124" }, { d: 13, s: "min", n: "2n" },
+  { d: 14, s: "shut" }, { d: 15, s: "shut" }, { d: 16, s: "open", p: "120" },
+  { d: 17, s: "open", p: "116" }, { d: 18, s: "open", p: "116" }, { d: 19, s: "open", p: "119" },
+  { d: 20, s: "min", n: "2n" }, { d: 21, s: "min", n: "2n" }, { d: 22, s: "open", p: "121" },
+  { d: 23, s: "open", p: "117" }, { d: 24, s: "open", p: "115" }, { d: 25, s: "open", p: "115" },
+  { d: 26, s: "open", p: "118" }, { d: 27, s: "min", n: "3n" }, { d: 28, s: "shut" },
+  { d: 29, s: "shut" }, { d: 30, s: "open", p: "126" }, { d: 31, s: "open", p: "126" },
+];
+const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+// Code snippets — kept as strings so braces / angle brackets render literally & safely.
+const dumpHard = `$ curl airbnb.com/s/Lisbon/homes
+<!DOCTYPE html><html …
+  480 KB of markup + tracking JSON,
+  hydration blobs, __NEXT_DATA__ …
+  # your context window is now gone`;
+const dumpNook = `$ nook search "Lisbon" --limit 3 --select id,name,price --json
+{
+  "schemaVersion": 1,
+  "scope": { "auth": "none", "corpus": "public-logged-out" },
+  "data": [ { "id": "1234", "name": "…", "price": 118 } ],
+  "nextCursor": "eyJvIjozfQ", "meta": { "count": 3 }
+}`;
+const errHard = `Traceback (most recent call last):
+  File "scrape.py", line 42, in <module>
+    r.raise_for_status()
+requests.exceptions.HTTPError:
+  429 Client Error: Too Many Requests`;
+const errNook = `$ nook availability 1234 --json   # exit 7
+{
+  "error": "upstream throttled this client",
+  "code": "RATE_LIMITED",
+  "remediation": "stop and back off; the circuit
+     breaker is open. do not retry into a block."
+}`;
+const evadeHard = `# rotate residential proxies
+proxy = pool.random_exit_ip()
+# solve the challenge
+token = captcha_service.solve(sitekey)
+session.headers = spoofed_fingerprint()
+#  → flagged. blocked. creepy.`;
+const evadeNook = `# nook: one honest client
+presents the real web client's fingerprint
+  + Airbnb's own public key, at low volume
+self-throttles (cross-process state)
+circuit-breaks on a block  → exit 7
+#  reduce volume, don't disguise identity.`;
+const schemaHard = `# introspect the tool?
+#   …read the source. guess the flags.
+#   hope the output shape is stable.`;
+const schemaNook = `$ nook schema --json | jq '.conformance'
+{
+  "level": "Full",
+  "spec": "agent-cli-guidelines",
+  "version": "0.4.0"
+}
+# full command tree, flags & exit codes too`;
+const availSnippet = `$ nook availability 1234 --months 3 --json
+{ "date": "2026-08-16", "available": true,
+  "minNights": 2, "price": 116, "currency": "USD" }`;
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      document.documentElement.classList.add("js");
+    </script>
+    <title>nook — the Airbnb availability calendar your agent can read</title>
+    <meta
+      name="description"
+      content="nook is a read-only, JSON-first Airbnb search + forward-availability CLI for AI agents. Its wedge: a free per-day availability calendar (available / min-nights / price). Booking excluded by design, no auth, no evasion."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={site} />
+    <meta property="og:title" content="nook — the Airbnb availability calendar your agent can read" />
+    <meta
+      property="og:description"
+      content="Read-only, JSON-first Airbnb search + a free forward-availability calendar for agents. Booking excluded, no auth, no evasion — matches the real client, self-throttles, circuit-breaks."
+    />
+    <meta property="og:image" content={`${site}/og/index.png`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={`${site}/og/index.png`} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="nav">
+      <a class="brand" href="/">
+        <svg viewBox="0 0 32 32" width="27" height="27" fill="none" aria-hidden="true">
+          <linearGradient id="g" x1="4" y1="30" x2="28" y2="4" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#e07a5f" /><stop offset=".6" stop-color="#ef9d7f" /><stop offset="1" stop-color="#eeb15a" />
+          </linearGradient>
+          <path d="M16 3.5 4 13.2c-.5.4-.8 1-.8 1.6V15h3.2l9.6-7.7 9.6 7.7h3.2v-.2c0-.6-.3-1.2-.8-1.6L16 3.5Z" fill="url(#g)" />
+          <path d="M7 16.4v10.1c0 .8.6 1.5 1.5 1.5H12v-6.2a4 4 0 0 1 8 0V28h3.5c.8 0 1.5-.7 1.5-1.5V16.4L16 9.7 7 16.4Z" fill="url(#g)" opacity=".82" />
+          <circle cx="16" cy="17.6" r="2.15" fill="#17110d" />
+        </svg>
+        <span>nook</span>
+      </a>
+      <nav>
+        <a href="/introduction/">Docs</a>
+        <a href="/guides/availability/">Availability</a>
+        <a href={repo}>GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- HERO: copy left, the vacancy board right -->
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="tick" aria-hidden="true"></span>Read-only · JSON-first · booking excluded by design</p>
+          <h1>The Airbnb availability calendar<br />your agent can <span class="grad">actually read</span>.</h1>
+          <p class="lede">
+            <strong>nook</strong> gives an AI agent clean, bounded JSON for Airbnb search, listing
+            details, and — the piece nothing else gives you free — a <strong>forward availability
+            calendar</strong>: per-day open / minimum-nights / price. It never books, never logs in,
+            reads only public pages.
+          </p>
+
+          <div class="install">
+            <input type="radio" name="inst" id="t-uvx" checked />
+            <input type="radio" name="inst" id="t-tool" />
+            <input type="radio" name="inst" id="t-pipx" />
+            <div class="tablabels" role="tablist" aria-label="Install method">
+              <label for="t-uvx">uvx <span class="rec">rec</span></label>
+              <label for="t-tool">uv tool</label>
+              <label for="t-pipx">pipx</label>
+            </div>
+            <div class="panels">
+              <div class="panel pan-uvx">
+                <code>uvx nook search "Lisbon" --json</code>
+                <button class="copy" data-copy={'uvx nook search "Lisbon" --json'} aria-label="Copy command">copy</button>
+              </div>
+              <div class="panel pan-tool">
+                <code>uv tool install nook</code>
+                <button class="copy" data-copy="uv tool install nook" aria-label="Copy command">copy</button>
+              </div>
+              <div class="panel pan-pipx">
+                <code>pipx install nook</code>
+                <button class="copy" data-copy="pipx install nook" aria-label="Copy command">copy</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="links">
+            <a class="btn primary" href="/introduction/">Read the docs →</a>
+            <a class="btn" href={repo}>Star on GitHub</a>
+          </div>
+        </div>
+
+        <!-- THE VACANCY BOARD -->
+        <div class="board-wrap">
+          <div class="board" aria-label="A forward availability calendar for one listing in August 2026: booked, open, and minimum-nights nights, each open night showing a nightly price.">
+            <div class="board-head">
+              <span class="board-title">availability · lisbon loft</span>
+              <span class="board-month">aug 2026</span>
+            </div>
+            <div class="board-days" aria-hidden="true">
+              {weekdays.map((w) => <span class="dow">{w}</span>)}
+            </div>
+            <div class="board-grid">
+              {Array.from({ length: LEAD }).map(() => <span class="cell blank" aria-hidden="true"></span>)}
+              {cells.map((c, i) => (
+                <span class={`cell ${c.s}`} style={`--i:${i}`}>
+                  <span class="num">{c.d}</span>
+                  {c.s === "open" && <span class="tag price">${c.p}</span>}
+                  {c.s === "min" && <span class="tag min">{c.n}</span>}
+                </span>
+              ))}
+            </div>
+            <div class="board-legend">
+              <span><i class="k open"></i> open</span>
+              <span><i class="k min"></i> min-nights</span>
+              <span><i class="k shut"></i> booked</span>
+            </div>
+          </div>
+          <div class="board-cmd"><span class="dollar">$</span> nook availability <b>1234</b> --months 3 --json</div>
+        </div>
+      </section>
+
+      <!-- THE HARD WAY vs THE NOOK WAY -->
+      <section class="beats">
+        <div class="sec-head reveal">
+          <span class="kicker">// the hard way vs the nook way</span>
+          <h2>Four things scraping makes ugly. nook makes each one boring.</h2>
+        </div>
+
+        <div class="beat reveal">
+          <div class="side hard">
+            <div class="side-tag">the hard way</div>
+            <pre>{dumpHard}</pre>
+            <p>An unbounded HTML dump. Your agent parses megabytes to find three fields.</p>
+          </div>
+          <div class="vs" aria-hidden="true">→</div>
+          <div class="side nook">
+            <div class="side-tag">the nook way</div>
+            <pre>{dumpNook}</pre>
+            <p>A bounded JSON envelope with an explicit <code>scope</code>. <code>--limit</code> / <code>--select</code> keep it inside the context budget.</p>
+          </div>
+        </div>
+
+        <div class="beat reveal">
+          <div class="side hard">
+            <div class="side-tag">the hard way</div>
+            <pre>{errHard}</pre>
+            <p>A raw traceback. The agent can't tell "back off" from "you have a bug".</p>
+          </div>
+          <div class="vs" aria-hidden="true">→</div>
+          <div class="side nook">
+            <div class="side-tag">the nook way</div>
+            <pre>{errNook}</pre>
+            <p><code>&#123; error, code, remediation &#125;</code> on stderr with a stable <strong>exit code</strong> — here <code>7</code>, rate-limited.</p>
+          </div>
+        </div>
+
+        <div class="beat reveal feature">
+          <div class="side hard">
+            <div class="side-tag">the hard way</div>
+            <pre>{evadeHard}</pre>
+            <p>Rotating proxies and CAPTCHA solvers disguise <em>who</em> is asking. That's the arms race — and it's creepy.</p>
+          </div>
+          <div class="vs" aria-hidden="true">→</div>
+          <div class="side nook">
+            <div class="side-tag glow">the nook way — no evasion</div>
+            <pre>{evadeNook}</pre>
+            <p>nook presents the <strong>real web client's fingerprint</strong> at low volume, self-throttles, and <strong>circuit-breaks on a block</strong>. It reduces volume; it never disguises identity.</p>
+          </div>
+        </div>
+
+        <div class="beat reveal">
+          <div class="side hard">
+            <div class="side-tag">the hard way</div>
+            <pre>{schemaHard}</pre>
+            <p>No contract. You read the source and hope the output shape holds.</p>
+          </div>
+          <div class="vs" aria-hidden="true">→</div>
+          <div class="side nook">
+            <div class="side-tag">the nook way</div>
+            <pre>{schemaNook}</pre>
+            <p><code>nook schema --json</code> is the machine contract — and <code>nook agent</code> prints the full guide.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- THE WEDGE -->
+      <section class="wedge reveal">
+        <div class="wedge-copy">
+          <span class="kicker">// the wedge</span>
+          <h2>A forward availability calendar, free.</h2>
+          <p>
+            Search and listing details are table stakes. The thing no other free agent tool hands
+            you is <strong>which nights are actually open</strong> — with the minimum-nights rule and
+            the nightly price for each one. That's the difference between "here are some listings"
+            and "book the loft for the 16th–19th; it's open, 2-night minimum, $116/night".
+          </p>
+          <ul class="wedge-list">
+            <li><b>Per-day truth.</b> <code>available</code>, <code>minNights</code>, and <code>price</code> for every date in the window.</li>
+            <li><b>Bounded window.</b> <code>--months 1..12</code> or an explicit <code>--start</code>/<code>--end</code>.</li>
+            <li><b>Same envelope.</b> The calendar rides the standard <code>scope</code>/<code>data</code>/<code>nextCursor</code> shape.</li>
+          </ul>
+        </div>
+        <div class="wedge-code">
+          <pre>{availSnippet}</pre>
+        </div>
+      </section>
+
+      <!-- BOUNDARIES: read-only / booking-excluded / no-auth -->
+      <section class="bounds">
+        <div class="sec-head reveal">
+          <span class="kicker">// what nook deliberately is not</span>
+          <h2>Narrow on purpose.</h2>
+        </div>
+        <div class="bound-grid">
+          <div class="bound reveal">
+            <h4>Read-only</h4>
+            <p>No command mutates Airbnb state. <code>--allow-mutations</code>, <code>--dry-run</code>, <code>--yes</code>, and <code>--force</code> exist for contract uniformity and are <strong>inert no-ops</strong>.</p>
+          </div>
+          <div class="bound reveal">
+            <h4>Booking excluded</h4>
+            <p>nook never transacts. Reserving, paying, messaging a host — all out of scope <strong>by design</strong>. It surfaces availability; you book like a human.</p>
+          </div>
+          <div class="bound reveal">
+            <h4>No auth</h4>
+            <p>It never logs in. Every read carries <code>scope: &#123; auth: "none", corpus: "public-logged-out" &#125;</code> — a standing reminder this is the public view, not a complete corpus.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- LEGITIMACY BOUNDARY -->
+      <section class="legit reveal">
+        <div class="legit-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="34" height="34" fill="none">
+            <path d="M16 3.5 4 13.2c-.5.4-.8 1-.8 1.6V15h3.2l9.6-7.7 9.6 7.7h3.2v-.2c0-.6-.3-1.2-.8-1.6L16 3.5Z" fill="var(--nk-terracotta)" />
+            <path d="M7 16.4v10.1c0 .8.6 1.5 1.5 1.5H12v-6.2a4 4 0 0 1 8 0V28h3.5c.8 0 1.5-.7 1.5-1.5V16.4L16 9.7 7 16.4Z" fill="var(--nk-amber)" opacity=".85" />
+            <circle cx="16" cy="17.6" r="2.15" fill="#17110d" />
+          </svg>
+        </div>
+        <span class="kicker">// the legitimacy boundary, stated honestly</span>
+        <h3>A polite guest, not a burglar.</h3>
+        <p>
+          nook reads <em>publicly visible, logged-out</em> Airbnb pages at <em>personal, single-user
+          scale</em>. Airbnb's Terms prohibit automated access (a contract term); <code>robots.txt</code>
+          disallows search paths and asks AI agents off <code>/rooms/</code>. Accessing public pages
+          is generally not a computer-crime in the US (<em>Van Buren</em> 2021; <em>hiQ</em> 2022;
+          <em>Meta v. Bright Data</em> 2024) — but expect breakage and use at your discretion.
+        </p>
+        <blockquote>If Airbnb blocks nook, the correct response is to <strong>stop, not to evade</strong>. Not legal advice.</blockquote>
+        <p class="legit-foot">The full boundary is embedded in the tool: <code>nook agent</code>.</p>
+      </section>
+
+      <!-- CONFORMANCE -->
+      <section class="conf reveal">
+        <div class="conf-badge">
+          <span class="conf-dot"></span>
+          Agent CLI Guidelines
+          <b>Full</b>
+        </div>
+        <p>
+          Built to the <a href="https://aclig.dev">Agent CLI Guidelines</a> at <strong>v0.4.0</strong>,
+          conformance level <strong>Full</strong>. Verify it from the binary, not this page:
+          <code>nook schema --json | jq .conformance</code>.
+        </p>
+        <a class="conf-link" href="https://aclig.dev/conformance/">See the conformance registry →</a>
+      </section>
+
+      <!-- CLOSING -->
+      <section class="closing reveal">
+        <pre class="prompt" aria-hidden="true">~ agent$ <span class="cur">nook availability 1234 --months 3 --json _</span></pre>
+        <h2>Hand your agent the availability board.</h2>
+        <div class="links">
+          <a class="btn primary" href="/getting-started/quickstart/">Get started →</a>
+          <a class="btn" href={repo}>GitHub</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>MIT © Ryan Wolfe</span>
+      <span class="dot">·</span>
+      <a href="/introduction/">Docs</a>
+      <span class="dot">·</span>
+      <a href="/concepts/legitimacy/">Legitimacy</a>
+      <span class="dot">·</span>
+      <a href={repo}>Source</a>
+      <span class="vac" aria-hidden="true"><i></i><i></i><i></i> open</span>
+    </footer>
+
+    <style>
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; overflow-x: hidden; }
+      body {
+        margin: 0; background: var(--nk-espresso-900); color: var(--nk-mist);
+        font-family: var(--nk-font-body); line-height: 1.62; overflow-x: hidden;
+        background-image:
+          radial-gradient(52rem 36rem at 84% -10%, rgba(224, 122, 95, .16), transparent 60%),
+          radial-gradient(46rem 34rem at -8% 24%, rgba(238, 177, 90, .1), transparent 58%);
+      }
+      .grain { position: fixed; inset: 0; pointer-events: none; opacity: .04; z-index: 0; mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+      main, .nav, footer { position: relative; z-index: 1; }
+      a { color: var(--nk-amber); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code, pre { font-family: var(--nk-font-mono); }
+      .grad { background: var(--nk-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .kicker { font-family: var(--nk-font-mono); font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--nk-terracotta); }
+
+      .nav { max-width: var(--nk-maxw); margin: 0 auto; padding: 1.35rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+      .brand { display: flex; align-items: center; gap: .55rem; color: var(--nk-cream); font-family: var(--nk-font-display); font-weight: 600; font-size: 1.4rem; letter-spacing: -.01em; }
+      .brand:hover { text-decoration: none; }
+      .nav nav { display: flex; gap: 1.4rem; }
+      .nav nav a { color: var(--nk-fog); font-size: .95rem; }
+      .nav nav a:hover { color: var(--nk-cream); text-decoration: none; }
+
+      main { max-width: var(--nk-maxw); margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+      /* ---------- HERO ---------- */
+      .hero { display: grid; grid-template-columns: 1.02fr .98fr; gap: 3rem; align-items: center; padding: 2.5rem 0 3.5rem; }
+      .eyebrow { display: inline-flex; align-items: center; gap: .55rem; color: var(--nk-fog); font-family: var(--nk-font-mono); font-size: .76rem; letter-spacing: .03em; }
+      .tick { width: 9px; height: 9px; border-radius: 2px; background: var(--nk-amber); box-shadow: 0 0 10px var(--nk-amber); display: inline-block; }
+      h1 { font-family: var(--nk-font-display); font-weight: 600; font-optical-sizing: auto; font-size: clamp(2.35rem, 4.7vw, 3.85rem); line-height: 1.04; letter-spacing: -.02em; color: var(--nk-cream); margin: 1rem 0 0; overflow-wrap: break-word; }
+      .lede { max-width: 34rem; margin: 1.4rem 0 0; font-size: 1.12rem; color: var(--nk-mist); }
+      .lede strong { color: var(--nk-cream); font-weight: 600; }
+
+      /* install tabs (CSS-only) */
+      .install { margin: 1.9rem 0 0; max-width: 460px; }
+      .install > input { position: absolute; opacity: 0; pointer-events: none; }
+      .tablabels { display: inline-flex; gap: 2px; padding: 3px; background: var(--nk-espresso-800); border: 1px solid var(--nk-line); border-radius: var(--nk-radius); }
+      .tablabels label { font-family: var(--nk-font-mono); font-size: .8rem; color: var(--nk-fog); padding: .34rem .8rem; border-radius: calc(var(--nk-radius) - 3px); cursor: pointer; transition: background .15s var(--nk-ease), color .15s var(--nk-ease); display: inline-flex; align-items: center; gap: .35rem; }
+      .tablabels label:hover { color: var(--nk-mist); }
+      .rec { font-size: .6rem; letter-spacing: .06em; text-transform: uppercase; background: var(--nk-espresso-600); color: var(--nk-honey); border-radius: 4px; padding: .05rem .3rem; }
+      .panels { display: flex; margin-top: .6rem; border: 1px solid var(--nk-line); border-radius: var(--nk-radius); background: var(--nk-espresso-800); overflow: hidden; }
+      .panel { display: none; flex: 1; align-items: stretch; justify-content: space-between; min-width: 0; }
+      .panel code { padding: .8rem .95rem; color: var(--nk-honey); font-size: .88rem; white-space: normal; overflow-wrap: anywhere; align-self: center; }
+      #t-uvx:checked ~ .tablabels label[for="t-uvx"],
+      #t-tool:checked ~ .tablabels label[for="t-tool"],
+      #t-pipx:checked ~ .tablabels label[for="t-pipx"] { background: var(--nk-grad); color: #2a160f; font-weight: 600; }
+      #t-uvx:checked ~ .tablabels label[for="t-uvx"] .rec { background: rgba(0,0,0,.18); color: #2a160f; }
+      #t-uvx:checked ~ .panels .pan-uvx,
+      #t-tool:checked ~ .panels .pan-tool,
+      #t-pipx:checked ~ .panels .pan-pipx { display: flex; }
+      .install:focus-within .tablabels { outline: 2px solid var(--nk-terracotta); outline-offset: 2px; border-radius: var(--nk-radius); }
+      .copy { border: 0; border-left: 1px solid var(--nk-line); background: var(--nk-espresso-700); color: var(--nk-terracotta); font-family: var(--nk-font-mono); padding: 0 1rem; cursor: pointer; font-size: .82rem; white-space: nowrap; display: flex; align-items: center; }
+      .copy:hover { background: var(--nk-espresso-600); }
+      .links { display: flex; gap: .8rem; margin-top: 1.8rem; flex-wrap: wrap; }
+      .btn { border: 1px solid var(--nk-line); border-radius: var(--nk-radius); padding: .7rem 1.3rem; color: var(--nk-cream); font-weight: 600; font-family: var(--nk-font-body); }
+      .btn:hover { text-decoration: none; border-color: var(--nk-terracotta); }
+      .btn.primary { background: var(--nk-grad); color: #2a160f; border: 0; }
+
+      /* ---------- THE VACANCY BOARD ---------- */
+      .board-wrap { justify-self: center; width: 100%; max-width: 430px; }
+      .board { border: 1px solid var(--nk-line); border-radius: var(--nk-radius-lg); background:
+        linear-gradient(180deg, var(--nk-espresso-800), var(--nk-espresso-850));
+        padding: 1.1rem 1.15rem 1.15rem; box-shadow: 0 30px 70px -34px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.03); }
+      .board-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: .85rem; }
+      .board-title { font-family: var(--nk-font-mono); font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--nk-fog); }
+      .board-month { font-family: var(--nk-font-display); font-weight: 600; color: var(--nk-honey); font-size: 1.05rem; }
+      .board-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 6px; }
+      .dow { text-align: center; font-family: var(--nk-font-mono); font-size: .64rem; color: var(--nk-fog); opacity: .7; }
+      .board-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .cell { position: relative; aspect-ratio: 1 / 1; border-radius: 7px; border: 1px solid var(--nk-line); display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--nk-espresso-700); }
+      .cell.blank { background: transparent; border: 0; }
+      .cell .num { font-family: var(--nk-font-mono); font-size: .72rem; color: var(--nk-mist); line-height: 1; }
+      .cell .tag { font-family: var(--nk-font-mono); font-size: .52rem; line-height: 1; margin-top: 2px; }
+      .cell.open { background: var(--nk-open-soft); border-color: color-mix(in srgb, var(--nk-open) 55%, var(--nk-line)); }
+      .cell.open .num { color: var(--nk-honey); }
+      .cell.open .tag.price { color: var(--nk-amber); }
+      .cell.min { background: var(--nk-min-soft); border-color: color-mix(in srgb, var(--nk-min) 55%, var(--nk-line)); }
+      .cell.min .num { color: var(--nk-coral); }
+      .cell.min .tag.min { color: var(--nk-terracotta); }
+      .cell.shut { background: var(--nk-shut); }
+      .cell.shut .num { color: var(--nk-fog); opacity: .45; }
+      .board-legend { display: flex; gap: 1rem; margin-top: .95rem; font-family: var(--nk-font-mono); font-size: .66rem; color: var(--nk-fog); }
+      .board-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+      .board-legend .k { width: 10px; height: 10px; border-radius: 3px; }
+      .k.open { background: var(--nk-open-soft); border: 1px solid var(--nk-open); }
+      .k.min { background: var(--nk-min-soft); border: 1px solid var(--nk-min); }
+      .k.shut { background: var(--nk-shut); border: 1px solid var(--nk-line); }
+      .board-cmd { margin-top: .95rem; text-align: center; font-family: var(--nk-font-mono); font-size: .78rem; color: var(--nk-fog); }
+      .board-cmd .dollar { color: var(--nk-terracotta); }
+      .board-cmd b { color: var(--nk-honey); font-weight: 400; }
+
+      /* split-flap fill-in — enhancement only (added by JS when in view + motion allowed) */
+      .js .board.animate .cell:not(.blank) { animation: flip .5s var(--nk-ease) both; animation-delay: calc(var(--i) * 26ms); transform-origin: top; }
+      @keyframes flip {
+        0% { transform: rotateX(-90deg); opacity: 0; }
+        60% { transform: rotateX(8deg); opacity: 1; }
+        100% { transform: rotateX(0); opacity: 1; }
+      }
+
+      /* ---------- section heads ---------- */
+      .sec-head { text-align: center; margin: 5.5rem auto 2.6rem; max-width: 46rem; }
+      .sec-head h2 { font-family: var(--nk-font-display); font-weight: 600; font-size: clamp(1.65rem, 3.3vw, 2.4rem); color: var(--nk-cream); letter-spacing: -.015em; margin: .7rem 0 0; line-height: 1.14; }
+
+      /* ---------- BEATS ---------- */
+      .beat { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: stretch; max-width: 1000px; margin: 0 auto 1.1rem; }
+      .side { border: 1px solid var(--nk-line); border-radius: var(--nk-radius-lg); padding: 1.1rem 1.15rem 1.2rem; background: var(--nk-espresso-850); display: flex; flex-direction: column; }
+      .side.hard { border-color: color-mix(in srgb, var(--nk-rose) 26%, var(--nk-line)); background: color-mix(in srgb, var(--nk-rose) 5%, var(--nk-espresso-850)); }
+      .side.nook { border-color: color-mix(in srgb, var(--nk-amber) 30%, var(--nk-line)); background: color-mix(in srgb, var(--nk-amber) 5%, var(--nk-espresso-850)); }
+      .side-tag { font-family: var(--nk-font-mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .7rem; color: var(--nk-fog); }
+      .side.hard .side-tag { color: var(--nk-rose); }
+      .side.nook .side-tag { color: var(--nk-amber); }
+      .side-tag.glow { color: var(--nk-amber); text-shadow: 0 0 18px rgba(238,177,90,.5); }
+      .side pre { font-size: .74rem; line-height: 1.5; margin: 0; color: var(--nk-mist); white-space: pre-wrap; overflow-wrap: anywhere; flex: 1; }
+      .side.hard pre { color: color-mix(in srgb, var(--nk-rose) 40%, var(--nk-mist)); }
+      .side p { margin: .85rem 0 0; font-size: .84rem; color: var(--nk-fog); }
+      .side p code { color: var(--nk-honey); font-size: .92em; }
+      .side p strong { color: var(--nk-cream); }
+      .vs { align-self: center; color: var(--nk-terracotta); font-size: 1.4rem; opacity: .7; }
+      .beat.feature .side.nook { box-shadow: 0 0 0 1px color-mix(in srgb, var(--nk-amber) 30%, transparent), 0 24px 60px -34px rgba(238,177,90,.35); }
+
+      /* ---------- WEDGE ---------- */
+      .wedge { display: grid; grid-template-columns: 1.06fr .94fr; gap: 2.2rem; align-items: center; margin: 6rem auto 0; max-width: 1000px; border: 1px solid var(--nk-line); border-radius: var(--nk-radius-lg); background: linear-gradient(120deg, color-mix(in srgb, var(--nk-terracotta) 8%, var(--nk-espresso-850)), var(--nk-espresso-850)); padding: 2rem; }
+      .wedge h2 { font-family: var(--nk-font-display); font-weight: 600; font-size: clamp(1.5rem, 3vw, 2.1rem); color: var(--nk-cream); letter-spacing: -.015em; margin: .55rem 0 .8rem; line-height: 1.14; }
+      .wedge p { margin: 0; color: var(--nk-mist); font-size: .96rem; }
+      .wedge strong { color: var(--nk-honey); font-weight: 600; }
+      .wedge-list { list-style: none; padding: 0; margin: 1.1rem 0 0; display: grid; gap: .6rem; }
+      .wedge-list li { font-size: .88rem; color: var(--nk-fog); padding-left: 1.1rem; position: relative; }
+      .wedge-list li::before { content: ""; position: absolute; left: 0; top: .5rem; width: 7px; height: 7px; border-radius: 2px; background: var(--nk-amber); }
+      .wedge-list b { color: var(--nk-cream); font-weight: 600; }
+      .wedge-list code, .wedge p code { color: var(--nk-honey); background: var(--nk-espresso-800); border: 1px solid var(--nk-line); border-radius: 5px; padding: .05rem .35rem; font-size: .82em; }
+      .wedge-code { background: var(--nk-espresso-900); border: 1px solid var(--nk-line); border-radius: var(--nk-radius); padding: 1.1rem; }
+      .wedge-code pre { margin: 0; font-size: .8rem; line-height: 1.55; color: var(--nk-honey); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+      /* ---------- BOUNDS ---------- */
+      .bound-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; max-width: 1000px; margin: 0 auto; }
+      .bound { border: 1px solid var(--nk-line); border-radius: var(--nk-radius-lg); padding: 1.4rem; background: var(--nk-espresso-850); transition: border-color .2s var(--nk-ease), transform .2s var(--nk-ease); }
+      .bound:hover { border-color: color-mix(in srgb, var(--nk-terracotta) 45%, var(--nk-line)); transform: translateY(-3px); }
+      .bound h4 { margin: 0 0 .5rem; color: var(--nk-cream); font-family: var(--nk-font-display); font-weight: 600; font-size: 1.15rem; }
+      .bound p { margin: 0; font-size: .9rem; color: var(--nk-fog); }
+      .bound code { color: var(--nk-honey); font-size: .86em; }
+      .bound strong { color: var(--nk-mist); }
+
+      /* ---------- LEGITIMACY ---------- */
+      .legit { max-width: 780px; margin: 6rem auto 0; text-align: center; border: 1px solid var(--nk-line); border-radius: var(--nk-radius-lg); background: var(--nk-espresso-850); padding: 2.4rem 2rem; position: relative; }
+      .legit-mark { display: inline-flex; margin-bottom: .4rem; }
+      .legit h3 { font-family: var(--nk-font-display); font-weight: 600; font-size: 1.7rem; color: var(--nk-cream); letter-spacing: -.015em; margin: .5rem 0 1rem; }
+      .legit p { margin: 0 auto; max-width: 60ch; color: var(--nk-fog); font-size: .92rem; }
+      .legit code { color: var(--nk-mist); font-size: .88em; }
+      .legit em { color: var(--nk-mist); font-style: italic; }
+      .legit blockquote { margin: 1.4rem auto; max-width: 52ch; border-left: 3px solid var(--nk-terracotta); padding: .3rem 0 .3rem 1.1rem; text-align: left; color: var(--nk-cream); font-family: var(--nk-font-display); font-size: 1.12rem; font-weight: 500; line-height: 1.4; }
+      .legit blockquote strong { color: var(--nk-amber); }
+      .legit-foot { font-family: var(--nk-font-mono); font-size: .82rem; }
+      .legit-foot code { color: var(--nk-amber); }
+
+      /* ---------- CONFORMANCE ---------- */
+      .conf { max-width: 780px; margin: 4rem auto 0; text-align: center; }
+      .conf-badge { display: inline-flex; align-items: center; gap: .55rem; font-family: var(--nk-font-mono); font-size: .82rem; letter-spacing: .04em; color: var(--nk-mist); border: 1px solid color-mix(in srgb, var(--nk-amber) 40%, var(--nk-line)); background: color-mix(in srgb, var(--nk-amber) 8%, var(--nk-espresso-850)); border-radius: 999px; padding: .5rem 1rem; }
+      .conf-badge b { color: #2a160f; background: var(--nk-grad); border-radius: 999px; padding: .1rem .6rem; font-weight: 700; }
+      .conf-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--nk-amber); box-shadow: 0 0 10px var(--nk-amber); }
+      .conf p { margin: 1.1rem auto 0; max-width: 58ch; color: var(--nk-fog); font-size: .92rem; }
+      .conf p code { color: var(--nk-honey); background: var(--nk-espresso-800); border: 1px solid var(--nk-line); border-radius: 5px; padding: .05rem .35rem; font-size: .84em; }
+      .conf-link { display: inline-block; margin-top: 1rem; font-weight: 600; }
+
+      /* ---------- CLOSING ---------- */
+      .closing { text-align: center; margin-top: 6.5rem; }
+      .prompt { font-family: var(--nk-font-mono); color: var(--nk-fog); font-size: .86rem; margin: 0 0 1.3rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .prompt .cur { color: var(--nk-amber); }
+      .prompt .cur::after { content: ""; display: inline-block; width: .5ch; height: 1.05em; background: var(--nk-amber); vertical-align: -.15em; margin-left: .1ch; animation: caret 1.1s steps(1) infinite; }
+      @keyframes caret { 50% { opacity: 0; } }
+      .closing h2 { font-family: var(--nk-font-display); font-weight: 600; font-size: clamp(1.8rem, 3.7vw, 2.7rem); color: var(--nk-cream); letter-spacing: -.02em; margin: 0 0 1.5rem; }
+      .closing .links { justify-content: center; }
+
+      footer { max-width: var(--nk-maxw); margin: 0 auto; padding: 2.6rem 1.5rem; border-top: 1px solid var(--nk-line); color: var(--nk-fog); font-size: .85rem; display: flex; gap: .7rem; align-items: center; flex-wrap: wrap; }
+      .dot { opacity: .5; }
+      .vac { margin-left: auto; display: inline-flex; align-items: center; gap: .3rem; font-family: var(--nk-font-mono); letter-spacing: .1em; color: var(--nk-amber); }
+      .vac i { width: 8px; height: 8px; border-radius: 2px; background: var(--nk-amber); box-shadow: 0 0 8px var(--nk-amber); }
+      .vac i:nth-child(2) { background: var(--nk-terracotta); box-shadow: none; }
+
+      /* reveal — gated on .js so content is fully visible without JavaScript */
+      .js .reveal { opacity: 0; transform: translateY(16px); transition: opacity .6s var(--nk-ease), transform .6s var(--nk-ease); }
+      .js .reveal.in { opacity: 1; transform: none; }
+      @media (prefers-reduced-motion: reduce) {
+        .js .reveal { opacity: 1; transform: none; transition: none; }
+        .js .board.animate .cell:not(.blank) { animation: none; }
+        .prompt .cur::after { animation: none; }
+      }
+      @media (max-width: 900px) {
+        .hero { grid-template-columns: 1fr; gap: 2.5rem; padding-top: 1.5rem; }
+        .board-wrap { max-width: 400px; order: -1; }
+        .beat { grid-template-columns: 1fr; }
+        .vs { transform: rotate(90deg); justify-self: center; }
+        .wedge { grid-template-columns: 1fr; }
+        .bound-grid { grid-template-columns: 1fr; }
+        .nav nav a:first-child { display: none; }
+        .install { max-width: 100%; }
+      }
+      @media (max-width: 480px) {
+        main { padding: 0 1.15rem 4rem; }
+        h1 { font-size: clamp(1.95rem, 8.4vw, 2.6rem); }
+        .board-wrap { max-width: 100%; }
+        .board-title { font-size: .66rem; }
+        .board-cmd { font-size: .68rem; overflow-wrap: anywhere; }
+        .board-legend { gap: .7rem; }
+      }
+    </style>
+
+    <script is:inline>
+      // Progressive enhancement only — every section is fully visible without JS.
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+        }, { threshold: 0.12 });
+        document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+
+        // Split-flap fill of the vacancy board when it scrolls into view.
+        const board = document.querySelector(".board");
+        if (board && !reduce) {
+          const bio = new IntersectionObserver((entries) => {
+            entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("animate"); bio.unobserve(e.target); } });
+          }, { threshold: 0.35 });
+          bio.observe(board);
+        }
+      } else {
+        document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+      }
+      document.querySelectorAll(".copy").forEach((b) =>
+        b.addEventListener("click", async () => {
+          if (!b.dataset.copy) return;
+          try { await navigator.clipboard.writeText(b.dataset.copy); const t = b.textContent; b.textContent = "copied"; setTimeout(() => (b.textContent = t), 1200); } catch {}
+        })
+      );
+    </script>
+  </body>
+</html>
