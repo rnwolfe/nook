@@ -119,9 +119,15 @@ def make_runtime(ctx) -> Runtime:
     sel = [s for s in (v["select"] or "").split(",") if s.strip()]
     limit = v["limit"] if v["limit"] is not None else 50
     out = Writer(fmt=fmt, color=color, limit=limit, select=sel)
+    # Fence untrusted text by default for AGENTS (JSON or non-TTY); off on the human plain-TTY
+    # path where markers are noise. --no-wrap forces it off regardless (contract §8).
+    if v["no_wrap"]:
+        wrap = False
+    else:
+        wrap = (fmt == "json") or (not sys.stdout.isatty())
     _active = Runtime(fmt=fmt, allow_mutations=bool(v["allow_mutations"]), dry_run=bool(v["dry_run"]),
                       yes=bool(v["yes"]), force=bool(v["force"]), no_input=bool(v["no_input"]),
-                      out=out, client=Client(), wrap=not bool(v["no_wrap"]))
+                      out=out, client=Client(), wrap=wrap)
     return _active
 
 

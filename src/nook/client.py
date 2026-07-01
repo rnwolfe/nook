@@ -22,7 +22,7 @@ from datetime import date, datetime
 from typing import Any
 
 from . import keyhash, transport
-from .errors import upstream_drift
+from .errors import AppError, ExitCode, upstream_drift
 
 _BASE = "https://www.airbnb.com/api/v3"
 _ROOM_ID_RE = re.compile(r"(\d+)\s*$")
@@ -184,8 +184,15 @@ class Client:
     def _normalize_search(self, payload: Any, currency: str) -> tuple[list[dict], str | None]:
         results = _dig(payload, "data", "presentation", "staysSearch", "results", "searchResults")
         if results is None:
-            # Distinguish "no results" from "shape changed": if the staysSearch node is entirely
-            # absent, the contract drifted.
+            errs = payload.get("errors") if isinstance(payload, dict) else None
+            if errs:
+                # A GraphQL error (e.g. a transient DataFetchingException) — not a shape change.
+                # Treat as retryable so an agent backs off and retries, not a "tool needs update".
+                msg = str(_dig(errs, 0, "message") or "GraphQL error")
+                raise AppError(ExitCode.RETRY, "UPSTREAM_ERROR",
+                               f"Airbnb returned a GraphQL error: {msg}",
+                               "transient upstream error; retry shortly (nook self-throttles)")
+            # No error but the results node is gone → the response contract drifted.
             if _dig(payload, "data", "presentation", "staysSearch") is None:
                 raise upstream_drift("StaysSearch response missing the expected results node")
             results = []
@@ -381,7 +388,9 @@ def _build_raw_params(location: str, f: dict[str, Any]) -> list[dict]:
     params: list[dict] = [
         _rp("cdnCacheSafe", "false"), _rp("channel", "EXPLORE"),
         _rp("datePickerType", "calendar"), _rp("flexibleTripLengths", "one_week"),
-        _rp("itemsPerGrid", str(f.get("_page_size", 50))),
+        # Airbnb rejects tiny grids (itemsPerGrid=1 → server DataFetchingException). Keep the
+        # upstream page in a sane band; --limit bounds the OUTPUT client-side, cursor pages the rest.
+        _rp("itemsPerGrid", str(min(50, max(20, int(f.get("_page_size") or 50))))),
         _rp("priceFilterInputType", "0"), _rp("refinementPaths", "/homes"),
         _rp("screenSize", "large"), _rp("tabId", "home_tab"), _rp("version", "1.8.3"),
     ]

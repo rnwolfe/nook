@@ -243,6 +243,15 @@ def test_schema_has_safety_conformance_and_drift_code(capsys):
     assert s["exit_codes"]["rate_limited"] == 7
 
 
+def test_schema_command_surface_snapshot(capsys):
+    """Golden surface gate (contract §10): the agent-facing command tree is append-only. A
+    rename/removal must be a reviewed diff, not a silent break — update this list deliberately."""
+    s = json.loads(run_capture(["schema"], capsys))
+    top = sorted(s["commands"]["commands"].keys())
+    assert top == sorted(["search", "place", "listing", "availability", "reviews",
+                          "doctor", "schema", "agent", "version"])
+
+
 def test_read_only_gate_machinery():
     rt = Runtime(fmt="json", allow_mutations=False, dry_run=False, yes=False, force=False,
                  no_input=False, out=Writer(), client=Client())
