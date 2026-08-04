@@ -30,7 +30,7 @@ const known = [
   "troubleshooting-rate-limited",
   "troubleshooting-upstream-drift",
 ];
-const id = (Astro.props.entry?.id ?? "").replace(/\.(md|mdx)$/, "").replace(/\//g, "-");
+const id = (Astro.locals.starlightRoute?.entry?.id ?? "").replace(/\.(md|mdx)$/, "").replace(/\//g, "-");
 const og = `${SITE}/og/${known.includes(id) ? id : "default"}.png`;
 ---
 
